@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Expense Tracker</title>
+  <style>
+  body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; }
+  form { display: flex; gap: 8px; margin-bottom: 20px; }
+  input, select { padding: 6px; }
+  li { padding: 6px 0; border-bottom: 1px solid #ddd; list-style: none; }
+  </style>
+</head>
+<body>
+
+  <h1>My Expense Tracker</h1>
+
+<form id="entryForm">
+<select id="category">
+  <option>Food</option>
+  <option>Transport</option>
+  <option>Other</option>
+</select>
+  <input type="text" id="description" placeholder="What did you buy?" required>
+  <input type="number" id="amount" placeholder="Amount" step="0.01" required>
+  <button type="submit">Add</button>
+<button id="exportBtn" type="button">Export CSV</button>
+</form>
+<ul id="expenseList"></ul>
+<p>Total: $<span id="total">0.00</span></p>
+  <script>
+  let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+
+  document.getElementById('entryForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const description = document.getElementById('description').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+
+    expenses.push({
+  description: description,
+  amount: amount,
+  category: document.getElementById('category').value,
+  date: new Date().toISOString().slice(0, 10) // e.g. "2026-09-14"
+});
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+
+    document.getElementById('description').value = '';
+    document.getElementById('amount').value = '';
+
+    render();
+  });
+function render() {
+  const list = document.getElementById('expenseList');
+  list.innerHTML = '';
+
+  let total = 0;
+  expenses.forEach(function(e, index) {
+    const li = document.createElement('li');
+    li.textContent = e.date + ' [' + e.category + '] ' + e.description + ' — $' + e.amount.toFixed(2) + ' ';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.onclick = function() {
+      expenses.splice(index, 1); // remove 1 item at this position
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+      render();
+    };
+
+    li.appendChild(deleteBtn);
+    list.appendChild(li);
+    total += e.amount;
+  });
+
+  document.getElementById('total').textContent = total.toFixed(2);
+}
+document.getElementById('exportBtn').addEventListener('click', function() {
+  let csv = 'Date,Category,Description,Amount\n';
+
+  expenses.forEach(function(e) {
+    csv += e.date + ',' + e.category + ',' + e.description + ',' + e.amount + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'expenses.csv';
+  link.click();
+
+  URL.revokeObjectURL(url);
+});
+  </script>
+
+</body>
+</html>
+
